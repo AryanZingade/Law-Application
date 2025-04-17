@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import React from "react";
 
-function Translate({
+function TranslateDropdown({
   targetLanguage,
   setTargetLanguage,
 }: {
@@ -24,6 +24,25 @@ function Translate({
     languages.find((l) => l.code === targetLanguage)?.label ||
     "Select Language";
 
+  const handleLanguageSelect = async (langCode: string) => {
+    setTargetLanguage(langCode);
+
+    try {
+      const response = await fetch("/invoke", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ targetLanguage: langCode }),
+      });
+
+      const data = await response.json();
+      console.log("Server response:", data);
+    } catch (error) {
+      console.error("Error sending language to server:", error);
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -35,7 +54,7 @@ function Translate({
         {languages.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
-            onSelect={() => setTargetLanguage(lang.code)}
+            onSelect={() => handleLanguageSelect(lang.code)}
             className={
               targetLanguage === lang.code ? "font-medium bg-muted" : ""
             }
@@ -48,4 +67,4 @@ function Translate({
   );
 }
 
-export default Translate;
+export default TranslateDropdown;

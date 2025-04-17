@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.core.credentials import AzureKeyCredential
-from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions, ContentSettings
+from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
 from langchain.schema import SystemMessage, HumanMessage
 from langchain_openai import AzureChatOpenAI
 
@@ -22,21 +22,6 @@ llm = AzureChatOpenAI(
     api_version="2024-10-21",
     temperature=0.2
 )
-
-def upload_pdf_to_blob(file_path, file_name):
-    """
-    Uploads a PDF file to Azure Blob Storage.
-    """
-    blob_service_client = BlobServiceClient(
-        account_url=f"https://{AZURE_BLOB_ACCOUNT}.blob.core.windows.net",
-        credential=AZURE_BLOB_KEY
-    )
-    blob_client = blob_service_client.get_blob_client(container=AZURE_BLOB_CONTAINER, blob=file_name)
-
-    with open(file_path, "rb") as data:
-        blob_client.upload_blob(data, overwrite=True, content_settings=ContentSettings(content_type="application/pdf"))
-
-    return f"File {file_name} uploaded successfully."
 
 def get_latest_contract():
     """
@@ -71,20 +56,12 @@ def generate_sas_url(blob_name):
 
 def extract_summary(file_path, file_name):
     """
-    Uploads a PDF, fetches the latest contract, extracts legal entities, and generates a summary.
+    Fetches a contract from the given file path, extracts legal entities, and generates a summary.
     """
-    # Step 1: Upload PDF first
-    upload_pdf_to_blob(file_path, file_name)
+    # Step 1: Generate SAS URL for the uploaded file
+    blob_url = generate_sas_url(file_name)
 
-    # Step 2: Fetch the latest uploaded contract
-    latest_file, error = get_latest_contract()
-    if error:
-        return {"error": error}
-    
-    # Step 3: Generate SAS URL for latest file
-    blob_url = generate_sas_url(latest_file)
-
-    # Step 4: Initialize Document Intelligence client
+    # Step 2: Initialize Document Intelligence client
     client = DocumentAnalysisClient(AZURE_FORM_RECOGNIZER_ENDPOINT, AzureKeyCredential(AZURE_FORM_RECOGNIZER_KEY))
     
     # Analyze document layout (text extraction)
@@ -92,7 +69,7 @@ def extract_summary(file_path, file_name):
     result = poller.result()
     extracted_text = "\n".join([line.content for page in result.pages for line in page.lines])
 
-    # Step 5: Generate legal summary using GPT
+    # Step 3: Generate legal summary using GPT
     prompt = f"""
     Extract key legal details from the following contract text:
     
