@@ -1,9 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type ResponseBoxProps = {
   response: any;
+  loading?: boolean;
 };
 
 function ResponseBox({ response }: ResponseBoxProps) {
